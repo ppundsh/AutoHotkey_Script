@@ -1,18 +1,23 @@
 ﻿;發佈位置：https://www.plurk.com/p/njsw4d 原始來源：https://sspai.com/post/57157
-;版本0.1
+;版本0.11
 
+;--------------------
 ;左鍵按住再按r 重新載入
+;--------------------
 ~LButton & r::
 reload
 return
 
-;連續按兩下Alt切換分層----------------------------------------------------------------
-~Alt::
-        keyWait, Alt
+
+;--------------------
+;Shift 雙擊分層--------
+;--------------------
+~Shift::
+        keyWait, Shift
 	if IsDoubleClick() {
 		RemapKeys := !RemapKeys
 		if RemapKeys
-			ShowTransText("ALT Mode")
+			ShowTransText("Shift Mode")
 		else
 			ShowTransText()
 	}
@@ -31,7 +36,6 @@ IsDoubleClick() {
 	return (A_ThisHotKey = A_PriorHotKey) && (A_TimeSincePriorHotkey <= doubleClickTime)
 }
 
-; ShowTransText("Hello")
 ; ShowTransText("Hello", 10, 10, {bgColor:"0x1482DE", textColor:"White"})
 ShowTransText(Text := "", X := 0, Y := 0, objOptions := "") {
 	if (Text = "") {
@@ -53,22 +57,82 @@ ShowTransText(Text := "", X := 0, Y := 0, objOptions := "") {
 	WinSet, Transparent, % o.transN, ahk_id %hGUI%
 }
 
+;--------------------
+;Alt 長按 Enter -----
+;--------------------
+; refrence https://autohotkey.com/board/topic/15574-morse-find-hotkey-press-and-hold-patterns/
+; ; 單擊 alt 視為 alt 其它情況視為 enter
 
+~Alt::  
+    p := Morse()
+    If (p = "0"){ ; 單擊輸入enter
+      Send {Esc}{Enter}
+    }
+    Else If (p = "00"){
+        MsgBox Two short presses
+    }
+    Else If (p = "01"){ ; 長按視為 Alt
+        Send, {Alt}
+    }
+    Else{
+        Send, {Alt}
+        ; MsgBox Press pattern %p%
 
-;連續按兩下ctrl
-~Control::
-if (A_PriorHotkey != "~Control" or A_TimeSincePriorHotkey > 400)
-{
-    ; Too much time between presses, so this isn't a double-press.
-    KeyWait, Control
-    return
+    }
+Return
+
+Morse(timeout = 250) {
+    tout := timeout/1000
+    key := RegExReplace(A_ThisHotKey,"[\*\~\$\#\+\!\^]")
+    Loop {
+        t := A_TickCount
+        KeyWait %key%
+        Pattern .= A_TickCount-t > timeout
+        KeyWait %key%,DT%tout%
+        If (ErrorLevel)
+            Return Pattern
+    }
 }
-Send !{F12}{Alt Up}
+
+;--------------------
+;CapsLock Status-----
+;--------------------
+CapsLock::
+
+
+GetKeyState, state, CapsLock, T ;  D if CapsLock is ON or U otherwise.
+if(state=="U")
+{
+  SetCapsLockState, on
+  ToolTip Caps Lock is On
+SetTimer, RemoveToolTip, 10000
+
+}
+else
+{
+ SetCapsLockState, Off
+ToolTip Caps Lock is Off
+SetTimer, RemoveToolTip, 1000
+
+}
+return
+/*
+#Persistent
+ToolTip, Timed ToolTip`nThis will be displayed for 5 seconds.
+SetTimer, RemoveToolTip, 5000
+return
+
+*/
+RemoveToolTip:
+SetTimer, RemoveToolTip, Off
+ToolTip
 return
 
 
 
-
+;--------------------
+; Space 加強 ----------
+;--------------------
 ;  ***  space
 space::Send {space}
 
@@ -82,7 +146,10 @@ space::Send {space}
 space & 4::Send {space}{space}{space}{space}
 space & 8::Send {space}{space}{space}{space}{space}{space}{space}{space}
 
-;連續貼上----------------------------------------------
+
+;--------------------
+;連續貼上------------
+;--------------------
 #if GetKeyState("space", "P")
 ^v::
 ;初始化，如果沒有"上次執行的時間"，就設定"已經貼上次數為零"
@@ -119,37 +186,40 @@ Send {Enter}
 LastTime :=A_TickCount
 
 return
-;----------------------------------------------------------------------
 
 
-
+;--------------------
+; Space 加強 --------
+;--------------------
 ;  *** space + [] (windows virual desktop switcher)
 space & [::Send ^#{left}
 space & ]::Send ^#{right}
 
 ;  *** space + XX
 #if GetKeyState("space", "P")
-f & i:: Send +{up}
-f & j:: Send +{left}
-f & k:: Send +{down}
+f & k:: Send +{up}
+f & h:: Send +{left}
+f & j:: Send +{down}
 f & l:: Send +{right}
-d & i:: Send ^{up}
-d & j:: Send ^{left}
-d & k:: Send ^{down}
+d & k:: Send ^{up}
+d & h:: Send ^{left}
+d & j:: Send ^{down}
 d & l:: Send ^{right}
-;g & i:: Send ^+{up} 
-g & j:: Send ^+{left}
-;g & k:: Send ^+{down}
+;g & k:: Send ^+{up} 
+g & h:: Send ^+{left}
+;g & j:: Send ^+{down}
 g & l:: Send ^+{right}
 
-i:: Send {up}
-j:: Send {left}
-k:: Send {down}
+k:: Send {up}
+h:: Send {left}
+j:: Send {down}
 l:: Send {right}
-h:: Send {home}
-n:: Send {end}
-o:: Send {Pgup}
+n:: Send {home}
+m:: Send {end}
+,:: Send {Pgup}
 .:: Send {Pgdn}
+b:: Send ^{right}
+w:: Send ^{left}
 
 c:: Send {Backspace} 
 x:: Send ^x
@@ -169,8 +239,11 @@ z:: Send ^z
 
 return
 
-;-------------------------------------------------------------------------
+
+
+;--------------------
 ;在任務欄上滾動鼠標來調節音量.
+;--------------------
 #If MouseIsOver("ahk_class Shell_TrayWnd")
 WheelUp::Send {Volume_Up}
 MButton::Send,{Volume_Mute}  
@@ -181,5 +254,3 @@ MouseIsOver(WinTitle) {
     return WinExist(WinTitle . " ahk_id " . Win)
 }
 return
-
-
